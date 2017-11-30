@@ -1,0 +1,21 @@
+
+# Please follow these code style guidelines. You can use this file to
+# automatically configure your editor.
+# For instructions, see: http://editorconfig.org/
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+
+[*.{pl,pm,t}]
+indent_size = 4
+indent_style = space
+max_line_length = 100
+trim_trailing_whitespace = true
+
+[*.{yml,yaml}]
+indent_size = 2
+indent_style = space
+trim_trailing_whitespace = true
+
