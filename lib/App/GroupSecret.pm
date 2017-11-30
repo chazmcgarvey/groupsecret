@@ -21,10 +21,26 @@ use MIME::Base64;
 use Pod::Usage;
 use namespace::clean;
 
+=method new
+
+    $script = App::GroupSecret->new;
+
+Construct a new script object.
+
+=cut
+
 sub new {
     my $class = shift;
     return bless {}, $class;
 }
+
+=method main
+
+    $script->main(@ARGV);
+
+Run a command with the given command-line arguments.
+
+=cut
 
 sub main {
     my $self = shift;
@@ -78,7 +94,7 @@ sub main {
     my $command = shift @args;
     my $lookup = $command;
     $lookup =~ s/-/_/g;
-    my $method = 'action_' . ($commands{$lookup} || '');
+    my $method = '_action_' . ($commands{$lookup} || '');
 
     if (!$self->can($method)) {
         warn "Unknown command: $command\n";
@@ -88,21 +104,45 @@ sub main {
     $self->$method(@args);
 }
 
+=method filepath
+
+    $filepath = $script->filepath;
+
+Get the path to the keyfile.
+
+=cut
+
 sub filepath {
     shift->{filepath} ||= $ENV{GROUPSECRET_KEYFILE} || 'groupsecret.yml';
 
 }
+
+=method file
+
+    $file = $script->file;
+
+Get the L<App::GroupSecret::File> instance for the keyfile.
+
+=cut
 
 sub file {
     my $self = shift;
     return $self->{file} ||= App::GroupSecret::File->new($self->filepath);
 }
 
+=method private_key
+
+    $filepath = $script->private_key;
+
+Get the path to a private key used to decrypt the keyfile.
+
+=cut
+
 sub private_key {
     shift->{private_key} ||= $ENV{GROUPSECRET_PRIVATE_KEY} || "$ENV{HOME}/.ssh/id_rsa";
 }
 
-sub action_print_secret {
+sub _action_print_secret {
     my $self = shift;
 
     my $decrypt = 1;
@@ -124,7 +164,7 @@ sub action_print_secret {
     }
 }
 
-sub action_set_secret {
+sub _action_set_secret {
     my $self = shift;
 
     my $keep_passphrase = 0;
@@ -173,7 +213,7 @@ sub action_set_secret {
     $file->save;
 }
 
-sub action_add_key {
+sub _action_add_key {
     my $self = shift;
 
     my $embed   = 0;
@@ -215,7 +255,7 @@ sub action_add_key {
     $file->save;
 }
 
-sub action_delete_key {
+sub _action_delete_key {
     my $self = shift;
 
     my $file = $self->file;
@@ -240,7 +280,7 @@ sub action_delete_key {
     $file->save;
 }
 
-sub action_list_keys {
+sub _action_list_keys {
     my $self = shift;
 
     my $file = $self->file;
