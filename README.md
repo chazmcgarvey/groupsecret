@@ -1,48 +1,219 @@
 # NAME
 
-App::GroupSecret - A simple tool for maintaining a shared group secret
+groupsecret - A simple tool for maintaining a shared group secret
 
 # VERSION
 
-version 0.300
+version 0.301
+
+# SYNOPSIS
+
+    groupsecret [--version] [--help] [-f <filepath>] [-k <privatekey_path>]
+                <command> [<args>]
+
+    groupsecret add-key [--embed] [--update] <publickey_path> ...
+
+    groupsecret delete-key <fingerprint>|<publickey_path> ...
+
+    groupsecret list-keys
+
+    groupsecret set-secret [--keep-passphrase] <path>|-|rand:<num_bytes>
+
+    groupsecret [print-secret] [--no-decrypt]
 
 # DESCRIPTION
 
-This module is part of the command-line interface for managing keyfiles.
+[groupsecret](https://metacpan.org/pod/groupsecret) is a program that makes it easy for groups to share a secret between themselves
+without exposing the secret to anyone else. It could be used, for example, by a team to share an
+[ansible-vault(1)](http://man.he.net/man1/ansible-vault) password.
 
-See [groupsecret](https://metacpan.org/pod/groupsecret) for documentation.
+The goal of this program is to be easy to use and have few dependencies (or only have dependencies
+users are likely to already have installed).
 
-# METHODS
+[groupsecret](https://metacpan.org/pod/groupsecret) works by encrypting a secret with a symmetric cipher protected by a secure random
+passphrase which is itself encrypted by one or more SSH2 RSA public keys. Only those who have access
+to one of the corresponding private keys are able to decrypt the passphrase and access the secret.
 
-## new
+The encrypted secret and passphrase are stored in a single keyfile. You can even commit the keyfile
+in a public repo or in a private repo where some untrusted users may have read access; the secret is
+locked away to all except those with a private key to a corresponding public key that has been added
+to the keyfile.
 
-    $script = App::GroupSecret->new;
+The keyfile is just a YAML file, so it's human-readable (except of course for the encrypted parts).
+This make it easy to add to version control and work with diffs. You can edit the keyfile by hand if
+you learn its very simple structure, but this program makes it even easier to manage the keyfile.
 
-Construct a new script object.
+# OPTIONS
 
-## main
+## --version
 
-    $script->main(@ARGV);
+Print the program name and version to `STDOUT`, and exit.
 
-Run a command with the given command-line arguments.
+Alias: `-v`
 
-## filepath
+## --help
 
-    $filepath = $script->filepath;
+Print the synopsis to `STDOUT`, and exit.
 
-Get the path to the keyfile.
+Alias: `-h`
 
-## file
+## --file=path
 
-    $file = $script->file;
+Specify a path to a keyfile which stores a secret and keys.
 
-Get the [App::GroupSecret::File](https://metacpan.org/pod/App::GroupSecret::File) instance for the keyfile.
+Defaults to the value of the environment variable `GROUPSECRET_KEYFILE` or `groupsecret.yml`.
 
-## private\_key
+Alias: `-f`
 
-    $filepath = $script->private_key;
+## --private-key=path
 
-Get the path to a private key used to decrypt the keyfile.
+Specify a path to a PEM private key. This is used by some commands to decrypt the passphrase that
+protects the secret and is ignored by commands that don't need it.
+
+Defaults to the value of the environment variable ["GROUPSECRET\_PRIVATE\_KEY"](#groupsecret_private_key). If that is unset, it
+defaults to `~/.ssh/id_rsa`.
+
+Alias: `-k`
+
+# COMMANDS
+
+## add-key
+
+    groupsecret add-key path/to/mykey_rsa.pub
+
+Adds one or more SSH2 RSA public keys to a keyfile. This allows the secret contained within the
+keyfile to be accessed by whoever has the corresponding private key.
+
+If the `--embed` option is used, the public keys will be embeded in the keyfile. This may be
+a useful way to make sure the actual keys are available in the future since they could be needed to
+encrypt a new passphrase if it ever needs to be changed. Keys that are not embedded will be searched
+for in the filesystem; see ["GROUPSECRET\_PATH"](#groupsecret_path).
+
+If the `--update` option is used and a key with the same fingerprint is added, the new key will
+replaced the existing key. The default behavior is to skip existing keys.
+
+If the keyfile is storing a secret, the passphrase protecting the secret will need to be decrypted
+so that access to the secret can be shared with the new key(s).
+
+Alias: `add-keys`
+
+## delete-key
+
+    groupsecret delete-key MD5:89:b3:fb:76:6c:f9:56:8e:a8:1a:df:ba:1c:ba:7d:05
+    groupsecret delete-key path/to/mykey_rsa.pub
+
+Deletes one or more keys from a keyfile. This prevents the secret contained within the keyfile from
+being accessed by whoever has the corresponding private key.
+
+Of course, if the owners of the key(s) being removed have already had access to the keyfile prior to
+their keys being removed, the secret is already exposed to them. It usually makes sense to follow up
+this command with a ["set-secret"](#set-secret) command in order to change the secret.
+
+Aliases: `delete-keys`, `remove-key`, `remove-keys`
+
+## list-keys
+
+    groupsecret list-keys
+
+Prints the keys that have access to the secret contained in the keyfile to `STDOUT`, one per line
+in the following format:
+
+    <fingerprint> <comment>
+
+## set-secret
+
+    groupsecret set-secret path/to/secretfile.txt
+    groupsecret set-secret - <<END
+    > it's a secret to everybody
+    > END
+    groupsecret set-secret rand:48
+
+Set or update the secret contained in a keyfile. The argument allows you to add a secret from
+a file, from <STDIN>, or from a stream of secure random bytes.
+
+If the keyfile already contains a secret, it will be replaced by the new secret. A keyfile can only
+contain one secret at a time. If you think you want to store more than one secret at a time, store
+a tarball instead.
+
+By default, this will also change the passphrase protecting the secret and re-encrypt the passphrase
+for each key currently in the keyfile. This requires all of the public keys to be available (see
+["GROUPSECRET\_PATH"](#groupsecret_path)). If for some reason you want to protect the new secret with the current
+passphrase, use the `--keep-passphrase` option; this can be done without the public keys being
+available, but it will require a private key to decrypt the passphrase.
+
+Aliases: `change-secret`, `update-secret`
+
+## print-secret
+
+    groupsecret print-secret
+    groupsecret print-secret --no-decrypt
+
+Print the secret contained in the keyfile to `STDOUT`.
+
+If the `--no-decrypt` option is used, the secret will be printed in its encrypted form.
+
+This requires a private key.
+
+Aliases: (no command), `show-secret`
+
+# REQUIREMENTS
+
+- [OpenSSH](https://www.openssh.com) (commands: [ssh-keygen(1)](http://man.he.net/man1/ssh-keygen))
+- [OpenSSL](https://www.openssl.org) (commands: [openssl(1)](http://man.he.net/man1/openssl))
+
+# INSTALL
+
+There are a few ways to install groupsecret to your system. First, make sure you first have the
+["REQUIREMENTS"](#requirements) installed.
+
+## Using cpanm
+
+You can install groupsecret using [cpanm](https://metacpan.org/pod/cpanm). If you have a local perl (plenv, perlbrew, etc.), you
+can just do this:
+
+    cpanm App::GroupSecret
+
+to install the `groupsecret` executable and its Perl module dependencies. The executable will be
+installed to your perl's bin path, like `~/perl5/perlbrew/bin/groupsecret`.
+
+If you're installing to your system perl, you can do:
+
+    cpanm --sudo App::GroupSecret
+
+to install the `groupsecret` executable to a system directory, like `/usr/local/bin/groupsecret`
+(depending on your perl).
+
+## For developers
+
+If you're a developer and want to hack on the source, clone the repository and pull the
+dependencies:
+
+    git clone https://github.com/chazmcgarvey/groupsecret.git
+    cd groupsecret
+    cpanm Dist::Zilla
+    dzil authordeps --missing | cpanm
+    dzil listdeps --author --develop --missing | cpanm
+
+# ENVIRONMENT
+
+## GROUPSECRET\_KEYFILE
+
+If set, this program will use the value as a path to the keyfile. The ["--file=path"](#file-path) option takes
+precedence if it is used.
+
+## GROUPSECRET\_PRIVATE\_KEY
+
+If set, this program will use the value as a path to the keyfile. The ["--private-key=path"](#private-key-path) option
+takes precedence if it is used.
+
+## GROUPSECRET\_PATH
+
+The value of this variable should be a colon-separated list of directories in which to search for
+public keys. By default, the actual keys are not embedded in keyfiles, but they may be needed to
+encrypt a new passphrase if it ever needs to be changed. Keys that are not embedded will be searched
+for in the filesystem based on the value of this environment variable.
+
+Defaults to `.:keys:$HOME/.ssh`.
 
 # BUGS
 
