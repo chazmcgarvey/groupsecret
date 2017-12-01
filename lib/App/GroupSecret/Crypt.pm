@@ -37,10 +37,9 @@ sub generate_secure_random_bytes {
 
     my @cmd = (qw{openssl rand}, $size);
 
-    my ($in, $out);
-    my $pid = open2($out, $in, @cmd);
+    my $out;
+    my $pid = open2($out, undef, @cmd);
 
-    close($in);
     waitpid($pid, 0);
     my $status = $?;
 
@@ -63,10 +62,8 @@ sub read_openssh_public_key {
 
     my @cmd = (qw{ssh-keygen -e -m PKCS8 -f}, $filepath);
 
-    my ($in, $out);
-    my $pid = open2($out, $in, @cmd);
-
-    close($in);
+    my $out;
+    my $pid = open2($out, undef, @cmd);
 
     waitpid($pid, 0);
     my $status = $?;
@@ -141,10 +138,8 @@ sub decrypt_rsa {
     my @cmd = (qw{openssl rsautl -decrypt -oaep -in}, $filepath, '-inkey', $privkey);
     push @cmd, ('-out', $outfile) if $outfile;
 
-    my ($in, $out);
-    my $pid = open2($out, $in, @cmd);
-
-    close($in);
+    my $out;
+    my $pid = open2($out, undef, @cmd);
 
     waitpid($pid, 0);
     my $status = $?;
@@ -189,10 +184,8 @@ sub encrypt_rsa {
     my @cmd = (qw{openssl rsautl -encrypt -oaep -pubin -inkey}, $keypath, '-in', $filepath);
     push @cmd, ('-out', $outfile) if $outfile;
 
-    my ($in, $out);
-    my $pid = open2($out, $in, @cmd);
-
-    close($in);
+    my $out;
+    my $pid = open2($out, undef, @cmd);
 
     waitpid($pid, 0);
     my $status = $?;
