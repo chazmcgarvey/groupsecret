@@ -9,6 +9,8 @@ our $VERSION = '9999.999'; # VERSION
 use Exporter qw(import);
 use File::Temp;
 use IPC::Open2;
+use IPC::Open3;
+use Symbol qw(gensym);
 use namespace::clean -except => [qw(import)];
 
 our @EXPORT_OK = qw(
@@ -88,21 +90,37 @@ Get the fingerprint of an OpenSSH private or public key.
 sub read_openssh_key_fingerprint {
     my $filepath = shift or _usage(q{read_openssh_key_fingerprint($filepath)});
 
+    # try with the -E flag first
     my @cmd = ($SSH_KEYGEN, qw{-l -E md5 -f}, $filepath);
 
     my $out;
-    my $pid = open2($out, undef, @cmd);
+    my $err = gensym;
+    my $pid = open3(undef, $out, $err, @cmd);
 
     waitpid($pid, 0);
     my $status = $?;
 
     my $exit_code = $status >> 8;
-    _croak 'Failed to read SSH2 key fingerprint' if $exit_code != 0;
+    if ($exit_code != 0) {
+        my $error_str = do { local $/; <$err> };
+        _croak 'Failed to read SSH2 key fingerprint' if $error_str !~ /unknown option -- E/s;
+
+        @cmd = ($SSH_KEYGEN, qw{-l -f}, $filepath);
+
+        undef $out;
+        $pid = open2($out, undef, @cmd);
+
+        waitpid($pid, 0);
+        $status = $?;
+
+        $exit_code = $status >> 8;
+        _croak 'Failed to read SSH2 key fingerprint' if $exit_code != 0;
+    }
 
     my $line = do { local $/; <$out> };
     chomp $line;
 
-    my ($bits, $fingerprint, $comment, $type) = $line =~ m!^(\d+) MD5:([^ ]+) (.*) \(([^\)]+)\)$!;
+    my ($bits, $fingerprint, $comment, $type) = $line =~ m!^(\d+) (?:MD5:)?([^ ]+) (.*) \(([^\)]+)\)$!;
 
     $fingerprint =~ s/://g;
 
