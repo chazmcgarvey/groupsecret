@@ -227,7 +227,7 @@ sub decrypt_aes_256_cbc {
         $filepath = $temp->filename;
     }
 
-    my @cmd = (qw{openssl aes-256-cbc -d -pass stdin -in}, $filepath);
+    my @cmd = (qw{openssl aes-256-cbc -d -pass stdin -md sha256 -in}, $filepath);
     push @cmd, ('-out', $outfile) if $outfile;
 
     my ($in, $out);
@@ -269,7 +269,7 @@ sub encrypt_aes_256_cbc {
         $filepath = $temp->filename;
     }
 
-    my @cmd = (qw{openssl aes-256-cbc -pass stdin -in}, $filepath);
+    my @cmd = (qw{openssl aes-256-cbc -pass stdin -md sha256 -in}, $filepath);
     push @cmd, ('-out', $outfile) if $outfile;
 
     my ($in, $out);
