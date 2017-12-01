@@ -21,6 +21,9 @@ our @EXPORT_OK = qw(
     encrypt_aes_256_cbc
 );
 
+our $OPENSSL    = 'openssl';
+our $SSH_KEYGEN = 'ssh-keygen';
+
 sub _croak { require Carp; Carp::croak(@_) }
 sub _usage { _croak("Usage: @_\n") }
 
@@ -35,7 +38,7 @@ Get a certain number of secure random bytes.
 sub generate_secure_random_bytes {
     my $size = shift or _usage(q{generate_secure_random_bytes($num_bytes)});
 
-    my @cmd = (qw{openssl rand}, $size);
+    my @cmd = ($OPENSSL, 'rand', $size);
 
     my $out;
     my $pid = open2($out, undef, @cmd);
@@ -60,7 +63,7 @@ Read a RFC4716 (SSH2) public key from a file, converting it to PKCS8 (PEM).
 sub read_openssh_public_key {
     my $filepath = shift or _usage(q{read_openssh_public_key($filepath)});
 
-    my @cmd = (qw{ssh-keygen -e -m PKCS8 -f}, $filepath);
+    my @cmd = ($SSH_KEYGEN, qw{-e -m PKCS8 -f}, $filepath);
 
     my $out;
     my $pid = open2($out, undef, @cmd);
@@ -85,7 +88,7 @@ Get the fingerprint of an OpenSSH private or public key.
 sub read_openssh_key_fingerprint {
     my $filepath = shift or _usage(q{read_openssh_key_fingerprint($filepath)});
 
-    my @cmd = (qw{ssh-keygen -l -E md5 -f}, $filepath);
+    my @cmd = ($SSH_KEYGEN, qw{-l -E md5 -f}, $filepath);
 
     my $out;
     my $pid = open2($out, undef, @cmd);
@@ -135,7 +138,7 @@ sub decrypt_rsa {
         $filepath = $temp->filename;
     }
 
-    my @cmd = (qw{openssl rsautl -decrypt -oaep -in}, $filepath, '-inkey', $privkey);
+    my @cmd = ($OPENSSL, qw{rsautl -decrypt -oaep -in}, $filepath, '-inkey', $privkey);
     push @cmd, ('-out', $outfile) if $outfile;
 
     my $out;
@@ -181,7 +184,7 @@ sub encrypt_rsa {
     close $temp2;
     my $keypath = $temp2->filename;
 
-    my @cmd = (qw{openssl rsautl -encrypt -oaep -pubin -inkey}, $keypath, '-in', $filepath);
+    my @cmd = ($OPENSSL, qw{rsautl -encrypt -oaep -pubin -inkey}, $keypath, '-in', $filepath);
     push @cmd, ('-out', $outfile) if $outfile;
 
     my $out;
@@ -220,7 +223,7 @@ sub decrypt_aes_256_cbc {
         $filepath = $temp->filename;
     }
 
-    my @cmd = (qw{openssl aes-256-cbc -d -pass stdin -md sha256 -in}, $filepath);
+    my @cmd = ($OPENSSL, qw{aes-256-cbc -d -pass stdin -md sha256 -in}, $filepath);
     push @cmd, ('-out', $outfile) if $outfile;
 
     my ($in, $out);
@@ -262,7 +265,7 @@ sub encrypt_aes_256_cbc {
         $filepath = $temp->filename;
     }
 
-    my @cmd = (qw{openssl aes-256-cbc -pass stdin -md sha256 -in}, $filepath);
+    my @cmd = ($OPENSSL, qw{aes-256-cbc -pass stdin -md sha256 -in}, $filepath);
     push @cmd, ('-out', $outfile) if $outfile;
 
     my ($in, $out);
