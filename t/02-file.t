@@ -28,16 +28,20 @@ is_deeply $empty->info, {
 is $empty->secret, undef, 'empty secret is undef';
 is $empty->version, 1, 'empty version is one';
 
-my $key1 = $empty->add_key("$Bin/keys/foo_rsa.pub");
-is_deeply $key1, {
-    comment             => 'foo',
-    filename            => 'foo_rsa.pub',
-    secret_passphrase   => undef,
-    type                => 'rsa',
-}, 'add_key in scalar context works';
+SKIP: {
+    skip 'requires ssh-keygen', 2;
 
-$empty->delete_key('89b3fb766cf9568ea81adfba1cba7d05');
-is_deeply $empty->keys, {}, 'file is empty again after delete_key';
+    my $key1 = $empty->add_key("$Bin/keys/foo_rsa.pub");
+    is_deeply $key1, {
+        comment             => 'foo',
+        filename            => 'foo_rsa.pub',
+        secret_passphrase   => undef,
+        type                => 'rsa',
+    }, 'add_key in scalar context works';
+
+    $empty->delete_key('89b3fb766cf9568ea81adfba1cba7d05');
+    is_deeply $empty->keys, {}, 'file is empty again after delete_key';
+};
 
 my $basic = App::GroupSecret::File->new("$Bin/keyfiles/basic.yml");
 
