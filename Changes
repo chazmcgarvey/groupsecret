@@ -2,6 +2,11 @@ Revision history for groupsecret.
 
 {{$NEXT}}
 
+0.302     2017-12-02 11:28:57-07:00 MST7MDT
+
+  * Documentation fixes.
+  * Documented the ansible-vault use case.
+
 0.301     2017-11-30 20:46:23-07:00 MST7MDT
 
   * Add support for ssh-keygen versions that don't have the -E fag.

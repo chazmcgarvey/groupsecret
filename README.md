@@ -4,7 +4,7 @@ groupsecret - A simple tool for maintaining a shared group secret
 
 # VERSION
 
-version 0.301
+version 0.302
 
 # SYNOPSIS
 
@@ -25,12 +25,12 @@ version 0.301
 
 [groupsecret](https://metacpan.org/pod/groupsecret) is a program that makes it easy for groups to share a secret between themselves
 without exposing the secret to anyone else. It could be used, for example, by a team to share an
-[ansible-vault(1)](http://man.he.net/man1/ansible-vault) password.
+[ansible-vault(1)](http://man.he.net/man1/ansible-vault) password; see ["ansible-vault"](#ansible-vault) for more about this particular use case.
 
 The goal of this program is to be easy to use and have few dependencies (or only have dependencies
 users are likely to already have installed).
 
-[groupsecret](https://metacpan.org/pod/groupsecret) works by encrypting a secret with a symmetric cipher protected by a secure random
+groupsecret works by encrypting a secret with a symmetric cipher protected by a secure random
 passphrase which is itself encrypted by one or more SSH2 RSA public keys. Only those who have access
 to one of the corresponding private keys are able to decrypt the passphrase and access the secret.
 
@@ -61,7 +61,7 @@ Alias: `-h`
 
 Specify a path to a keyfile which stores a secret and keys.
 
-Defaults to the value of the environment variable `GROUPSECRET_KEYFILE` or `groupsecret.yml`.
+Defaults to the value of the environment variable ["GROUPSECRET\_KEYFILE"](#groupsecret_keyfile) or `groupsecret.yml`.
 
 Alias: `-f`
 
@@ -70,8 +70,7 @@ Alias: `-f`
 Specify a path to a PEM private key. This is used by some commands to decrypt the passphrase that
 protects the secret and is ignored by commands that don't need it.
 
-Defaults to the value of the environment variable ["GROUPSECRET\_PRIVATE\_KEY"](#groupsecret_private_key). If that is unset, it
-defaults to `~/.ssh/id_rsa`.
+Defaults to the value of the environment variable ["GROUPSECRET\_PRIVATE\_KEY"](#groupsecret_private_key) or `~/.ssh/id_rsa`.
 
 Alias: `-k`
 
@@ -90,7 +89,7 @@ encrypt a new passphrase if it ever needs to be changed. Keys that are not embed
 for in the filesystem; see ["GROUPSECRET\_PATH"](#groupsecret_path).
 
 If the `--update` option is used and a key with the same fingerprint is added, the new key will
-replaced the existing key. The default behavior is to skip existing keys.
+replace the existing key. The default behavior is to skip existing keys.
 
 If the keyfile is storing a secret, the passphrase protecting the secret will need to be decrypted
 so that access to the secret can be shared with the new key(s).
@@ -214,6 +213,81 @@ encrypt a new passphrase if it ever needs to be changed. Keys that are not embed
 for in the filesystem based on the value of this environment variable.
 
 Defaults to `.:keys:$HOME/.ssh`.
+
+# EXAMPLES
+
+## ansible-vault
+
+[Ansible Vault](http://docs.ansible.com/ansible/latest/vault.html) is a great way to securely store
+secret configuration variables for use in your playbooks. Vaults are secured using a password, which
+is okay if you're the only one who will need to unlock the Vault, but as soon as you add team
+members who also need to access the Vault you are then faced with how to manage knowledge of the
+password. When a team member leaves, you'll also need to change the Vault password which means
+you'll need a way to communicate the change to other team members who also have access. This becomes
+a burden to manage.
+
+You can use groupsecret to manage this very easily by storing the Vault password in a groupsecret
+keyfile. That way, you can add or remove keys and change the secret (the Vault password) at any time
+without affecting the team members that still have access. Team members always use their own SSH2
+RSA keys to unlock the Vault, so no new password ever needs to be communicated out.
+
+To set this up, first create a keyfile with the public keys of everyone on your team:
+
+    groupsecret -f vault-password.yml add-keys keys/*_rsa.pub
+
+Then set the secret in the keyfile to a long random number:
+
+    groupsecret -f vault-password.yml set-secret rand:48
+
+This will be the Ansible Vault password. You can see it if you want using the ["print-secret"](#print-secret)
+command, but you don't need to.
+
+Finally, we'll take advantage of the fact that a Ansible Vault password file can be an executable
+program that prints the Vault password to `STDOUT`. Create a file named `vault-password` with the
+following script, and make it executable (`chmod +x vault-password`):
+
+    #!/bin/sh
+    # Use groupsecret <https://github.com/chazmcgarvey/groupsecret> to access the Vault password
+    exec ${GROUPSECRET:-groupsecret} -f vault-password.yml print-secret
+
+Commit both `vault-password` and `vault-password.yml` to your repository.
+
+Now use [ansible-vault(1)](http://man.he.net/man1/ansible-vault) to add files to the Vault:
+
+    ansible-vault --vault-id=vault-password encrypt foo.yml bar.yml baz.yml
+
+These examples show the Ansible 2.4+ syntax, but it can be adapted for earlier versions. The
+significant part of this command is `--vault-id=vault-password` which refers to the executable
+script we created earlier. You can use that argument with other ansible-vault commands to view or
+edit the encrypted files.
+
+You can also pass that same argument to `ansible-playbook(1)` in order to use the Vault in
+playbooks that refer to the encrypted variables:
+
+    ansible-playbook -i myinventory --vault-id=vault-password site.yml
+
+What this does is execute `vault-password` which executes groupsecret to print the secret contained
+in the `vault-password.yml` file (which is actually the Vault password) to <STDOUT>. In order to do
+this, groupsecret will decrypt the keyfile passphrase using any one of the private keys that have
+associated public keys added to the keyfile.
+
+That's it! Pretty easy.
+
+If and when you need to change the Vault password (such as when a team member leaves), you can
+follow this procedure which is probably mostly self-explanatory:
+
+    groupsecret -f vault-password.yml delete-key keys/revoked/jdoe_rsa.pub
+    groupsecret -f vault-password.yml print-secret >old-vault-password.txt
+    groupsecret -f vault-password.yml set-secret rand:48
+    echo "New Vault password: $(groupsecret -f vault-password.yml)"
+    ansible-vault --vault-id=old-vault-password.txt rekey foo.yml bar.yml baz.yml
+    # You will be prompted for the new Vault password which you can copy from the output above.
+    rm -f old-vault-password.txt
+
+This removes access to the keyfile secret and to the Ansible Vault. Don't forget that you may also
+want to change the variables being protected by the Vault. After all, those secrets are the actual
+things we're protecting by doing all of this, and an exiting team member may have decided to take
+a copy of those variables for himself before leaving.
 
 # BUGS
 
