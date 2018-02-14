@@ -114,7 +114,6 @@ Get the path to the keyfile.
 
 sub filepath {
     shift->{filepath} ||= $ENV{GROUPSECRET_KEYFILE} || 'groupsecret.yml';
-
 }
 
 =method file
@@ -152,7 +151,11 @@ sub _action_print_secret {
     ) or pod2usage(2);
 
     my $file = $self->file;
-    die "No secret in file -- use the \`set-secret' command to set one.\n" if !$file->secret;
+    my $filepath = $file->filepath;
+    die "No keyfile '$filepath' exists -- use the \`add-key' command to create one.\n"
+        unless -e $filepath && !-d $filepath;
+    die "No secret in keyfile '$filepath' exists -- use the \`set-secret' command to set one.\n"
+        if !$file->secret;
 
     if ($decrypt) {
         my $private_key = $self->private_key;
