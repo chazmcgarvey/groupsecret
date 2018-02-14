@@ -365,7 +365,7 @@ sub find_public_key {
         my @dirs = split(/:/, $ENV{GROUPSECRET_PATH} || ".:keys:$ENV{HOME}/.ssh");
         for my $dir (@dirs) {
             my $filepath = File::Spec->catfile($dir, $key->{filename});
-            return $filepath if -f $filepath;
+            return $filepath if -e $filepath && !-d $filepath;
         }
     }
 }
