@@ -290,6 +290,8 @@ sub decrypt_secret_passphrase {
     my $self        = shift;
     my $private_key = shift or _usage(q{$file->decrypt_secret_passphrase($private_key)});
 
+    die "Private key '$private_key' not found.\n" unless -e $private_key && !-d $private_key;
+
     my $info = read_openssh_key_fingerprint($private_key);
     my $fingerprint = $info->{fingerprint};
 
@@ -298,7 +300,7 @@ sub decrypt_secret_passphrase {
         return decrypt_rsa(\$key->{secret_passphrase}, $private_key);
     }
 
-    die "The private key ($private_key) is not able to decrypt the keyfile.\n";
+    die "Private key '$private_key' not able to decrypt the keyfile.\n";
 }
 
 =method encrypt_secret
