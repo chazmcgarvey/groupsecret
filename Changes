@@ -2,6 +2,11 @@ Revision history for groupsecret.
 
 {{$NEXT}}
 
+0.303     2018-02-14 09:28:23-07:00 MST7MDT
+
+  * Improve error messages.
+  * Allow finding pubkeys that are symlinks.
+
 0.302     2017-12-02 11:28:57-07:00 MST7MDT
 
   * Documentation fixes.

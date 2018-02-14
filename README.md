@@ -4,7 +4,7 @@ groupsecret - A simple tool for maintaining a shared group secret
 
 # VERSION
 
-version 0.302
+version 0.303
 
 # SYNOPSIS
 
@@ -198,12 +198,12 @@ dependencies:
 ## GROUPSECRET\_KEYFILE
 
 If set, this program will use the value as a path to the keyfile. The ["--file=path"](#file-path) option takes
-precedence if it is used.
+precedence if used.
 
 ## GROUPSECRET\_PRIVATE\_KEY
 
-If set, this program will use the value as a path to the keyfile. The ["--private-key=path"](#private-key-path) option
-takes precedence if it is used.
+If set, this program will use the value as a path to private key used for decryption. The
+["--private-key=path"](#private-key-path) option takes precedence if used.
 
 ## GROUPSECRET\_PATH
 
@@ -242,7 +242,7 @@ Then set the secret in the keyfile to a long random number:
 This will be the Ansible Vault password. You can see it if you want using the ["print-secret"](#print-secret)
 command, but you don't need to.
 
-Finally, we'll take advantage of the fact that a Ansible Vault password file can be an executable
+Then we'll take advantage of the fact that an Ansible Vault password file can be an executable
 program that prints the Vault password to `STDOUT`. Create a file named `vault-password` with the
 following script, and make it executable (`chmod +x vault-password`):
 
@@ -261,14 +261,14 @@ significant part of this command is `--vault-id=vault-password` which refers to 
 script we created earlier. You can use that argument with other ansible-vault commands to view or
 edit the encrypted files.
 
-You can also pass that same argument to `ansible-playbook(1)` in order to use the Vault in
+You can also pass that same argument to [ansible-playbook(1)](http://man.he.net/man1/ansible-playbook) in order to use the Vault in
 playbooks that refer to the encrypted variables:
 
     ansible-playbook -i myinventory --vault-id=vault-password site.yml
 
 What this does is execute `vault-password` which executes groupsecret to print the secret contained
-in the `vault-password.yml` file (which is actually the Vault password) to <STDOUT>. In order to do
-this, groupsecret will decrypt the keyfile passphrase using any one of the private keys that have
+in the `vault-password.yml` file (which is actually the Vault password) to `STDOUT`. In order to
+do this, groupsecret will decrypt the keyfile passphrase using any one of the private keys that have
 associated public keys added to the keyfile.
 
 That's it! Pretty easy.
