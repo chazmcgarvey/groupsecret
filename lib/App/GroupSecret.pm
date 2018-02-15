@@ -5,11 +5,11 @@ package App::GroupSecret;
 use warnings;
 use strict;
 
-our $VERSION = '0.303'; # VERSION
+our $VERSION = '0.304'; # VERSION
 
 use App::GroupSecret::Crypt qw(generate_secure_random_bytes read_openssh_key_fingerprint);
 use App::GroupSecret::File;
-use Getopt::Long qw(GetOptionsFromArray);
+use Getopt::Long 2.38 qw(GetOptionsFromArray);
 use MIME::Base64;
 use Pod::Usage;
 use namespace::clean;
@@ -268,7 +268,7 @@ App::GroupSecret - A simple tool for maintaining a shared group secret
 
 =head1 VERSION
 
-version 0.303
+version 0.304
 
 =head1 DESCRIPTION
 

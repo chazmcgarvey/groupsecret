@@ -5,7 +5,7 @@ package App::GroupSecret::File;
 use warnings;
 use strict;
 
-our $VERSION = '0.303'; # VERSION
+our $VERSION = '0.304'; # VERSION
 
 use App::GroupSecret::Crypt qw(
     generate_secure_random_bytes
@@ -252,7 +252,7 @@ App::GroupSecret::File - Reading and writing groupsecret keyfiles
 
 =head1 VERSION
 
-version 0.303
+version 0.304
 
 =head1 SYNOPSIS
 
