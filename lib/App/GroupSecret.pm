@@ -16,7 +16,7 @@ our $VERSION = '9999.999'; # VERSION
 
 use App::GroupSecret::Crypt qw(generate_secure_random_bytes read_openssh_key_fingerprint);
 use App::GroupSecret::File;
-use Getopt::Long qw(GetOptionsFromArray);
+use Getopt::Long 2.38 qw(GetOptionsFromArray);
 use MIME::Base64;
 use Pod::Usage;
 use namespace::clean;
