@@ -4,7 +4,7 @@ groupsecret - A simple tool for maintaining a shared group secret
 
 # VERSION
 
-version 0.303
+version 0.304
 
 # SYNOPSIS
 
